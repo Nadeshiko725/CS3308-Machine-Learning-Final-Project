@@ -19,6 +19,7 @@ import tqdm
 TRAIN_DATA_PATH = './train'
 TEST_DATA_PATH = './test'
 Log_PATH = './log'
+Score_PATH = './score'
 
 def set_seed(seed):
     np.random.seed(seed)
@@ -79,18 +80,23 @@ def get_data_loader(data_list):
 # 训练模型
 def train_model(model, train_loader, optimizer, loss_fn):
     model.train()
-    # losses = []
-    total_loss = 0
+    losses = []
+    # total_loss = 0
     for data in train_loader:
         data = data.to('cuda')
         optimizer.zero_grad()
         out = model(data)  # 前向传播
         loss = loss_fn(out, data.y)  # 计算损失
-        # losses.append(loss.item())
-        total_loss += loss.item()
+        losses.append(loss.item())
+        # print(f'真实评分：{data.y.item()}，预测评分：{out.item()}')
+        with open(os.path.join(Score_PATH, 'log_scores.txt'), 'a') as f:
+            f.write(f'train: 真实评分：{data.y.item()}，预测评分：{out.item()}\n')
+        # total_loss += loss.item()
+        with open(os.path.join(Log_PATH, 'log_loss.txt'), 'a') as f:
+            f.write(f'train loss: {loss.item()}\n')
         loss.backward()  # 反向传播
         optimizer.step()  # 更新权重
-    return total_loss
+    return np.mean(losses)
 
 # 评估模型
 def evaluate_model(model, test_loader, loss_fn):
@@ -101,7 +107,12 @@ def evaluate_model(model, test_loader, loss_fn):
             data = data.to('cuda')
             out = model(data)
             total_loss += loss_fn(out, data.y).item()
-    return total_loss, out.item()
+            # print(f'真实评分：{data.y.item()}，预测评分：{out.item()}')
+            with open(os.path.join(Score_PATH, 'log_scores.txt'), 'a') as f:
+                f.write(f'test: 真实评分：{data.y.item()}，预测评分：{out.item()}\n')
+            with open(os.path.join(Log_PATH, 'log_loss.txt'), 'a') as f:
+                f.write(f'test loss: {total_loss}\n')
+    return total_loss / len(test_loader), out.item()
 
 # 主函数
 def main():
@@ -127,11 +138,11 @@ def main():
 
     scores = []
     # 训练模型
-    for epoch in tqdm.tqdm(range(50), desc='Training', colour='green'):
+    for epoch in tqdm.tqdm(range(1), desc='Training', colour='green'):
         train_loss = train_model(model, train_loader, optimizer, loss_fn)
         test_loss, score = evaluate_model(model, test_loader, loss_fn)
         print(f'Epoch: {epoch:03d}, Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Score: {score}')
-        with open(os.path.join(Log_PATH, 'log_final.txt'), 'a') as f:
+        with open(os.path.join(Log_PATH, 'log_final_1.txt'), 'a') as f:
             f.write(f'Epoch: {epoch:03d}, Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Score: {score}\n')
 
 
@@ -139,5 +150,7 @@ def main():
 if __name__ == "__main__":
     if not os.path.exists(Log_PATH):
         os.makedirs(Log_PATH)
+    if not os.path.exists(Score_PATH):
+        os.makedirs(Score_PATH)
     set_seed(10)
     main()
