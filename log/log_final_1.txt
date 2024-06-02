@@ -1,1 +1,2 @@
 Epoch: 000, Train loss: 0.0078, Test Loss: 0.0312, Score: 0.07724108546972275
+Epoch: 000, Train loss: 0.0184, Test Loss: 0.0312, Score: 0.08293785899877548
